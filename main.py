@@ -1,7 +1,8 @@
 from firedrake import *
 
 n = 10
-mesh = UnitIntervalMesh(n)
+scale = 10**-6
+mesh = IntervalMesh(n,scale)
 
 V = FunctionSpace(mesh, "CG", 1)
 Vout = FunctionSpace(mesh, "CG", 1)
@@ -40,7 +41,7 @@ epsilon_r = 1
 #n0 = ?
 #p0 = ?
 #a0 = ?
-x_val = SpatialCoordinate(mesh)
+x_val = SpatialCoordinate(mesh)/scale
 v0 = x_val[0]
 
 #it seems G=U=pow(n*p,.5)/(gamma*tau)
