@@ -45,14 +45,15 @@ epsilon_r = 1
 #n0 = ?
 #p0 = ?
 #a0 = ?
-x_val = SpatialCoordinate(mesh)*scale
+x_val = SpatialCoordinate(mesh)/scale
 v0 = x_val[0]
-n0 = x_val[0]
-p0 = x_val[0]
 
 NA = conditional(x_val[0] < x_pi, NA_const, 0)
 ND = conditional(x_val[0] > x_in, ND_const, 0)
 Nion = conditional(And(x_val[0] > x_pi, x_val[0] < x_in), Nion_const, 0)
+
+n0 = NA
+p0 = ND
 
 #it seems G=U=pow(n*p,.5)/(gamma*tau)
 #gamma is the recombination reaction order, tau is the SRH recomb. 
@@ -91,7 +92,7 @@ res = a_full - L_full
 bcv = DirichletBC(W.sub(2), v0,sub_domain="on_boundary")
 #bcn_left
 bcn_right = DirichletBC(W.sub(0), n0,sub_domain=2)
-bcp_left = DirichletBC(W.sub(0), p0,sub_domain=1)
+bcp_left = DirichletBC(W.sub(1), p0,sub_domain=1)
 #bcp_right
 #Jn conds how?
 
