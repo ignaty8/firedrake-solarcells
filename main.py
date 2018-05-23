@@ -82,7 +82,7 @@ LV1 = 10**17*(n-p)*v_test*dx
 LV2 = NA*v_test*dx
 LV3 = (-0 + Nion)*v_test*dx
 LV4 = -ND*v_test*dx
-LVS = (LV2)
+LVS = (LV1 + LV2 + LV3 + LV4)
 LV = -(q/epsilon_0/epsilon_r )* LVS
 
 a_full = aV
