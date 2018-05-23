@@ -1,8 +1,8 @@
 from firedrake import *
 
-n = 10
+grid_size = 100
 scale = 10**-6
-mesh = IntervalMesh(n,scale)
+mesh = IntervalMesh(grid_size,scale)
 
 V = FunctionSpace(mesh, "CG", 1)
 Vout = FunctionSpace(mesh, "CG", 1)
@@ -40,20 +40,20 @@ T = 300 #K
 epsilon_0 = 5.524*10**5 #q**2/eV/cm Vacuum Permittivity
 G_default = 2.5*10**21 #cm**3/s
 
-epsilon_r = 1
+epsilon_r = 20#1#0**-24
 
 #n0 = ?
 #p0 = ?
 #a0 = ?
-x_val = SpatialCoordinate(mesh)/scale
-v0 = x_val[0]
+x_val = SpatialCoordinate(mesh)#/scale
+v0 = 1-x_val[0]/scale
 
-NA = conditional(x_val[0] < x_pi, NA_const, 0)
+NA = NA_const#conditional(x_val[0] < x_pi, NA_const, 0)
 ND = conditional(x_val[0] > x_in, ND_const, 0)
 Nion = conditional(And(x_val[0] > x_pi, x_val[0] < x_in), Nion_const, 0)
 
-n0 = NA
-p0 = ND
+n0 = ND_const/10**17#ND
+p0 = NA_const/10**17#NA
 
 #it seems G=U=pow(n*p,.5)/(gamma*tau)
 #gamma is the recombination reaction order, tau is the SRH recomb. 
@@ -63,26 +63,27 @@ p0 = ND
 timestep = 1.0/n
 
 G = G_default
-k1 = 1
-k2 = 1
-U = 1#k1 * (n*p - k2)
+k1 = n0
+k2 = p0
+U = k1 * (n0*p0 - k2)
 
 #(12)
 Ln1 = inner(mu_e*(n*grad(v) - k_b/q * T*grad(n)),grad(n_test))
-Ln2 = (G - U)*n_test
+Ln2 = 0#(G - U)*n_test
 Ln = (Ln1 + Ln2) * dx
 #(13)
 Lp1 = inner(mu_h*(-p*grad(v) - k_b/q * T*grad(p)),grad(p_test))
-Lp2 = (G - U)*p_test
+Lp2 = 0#(G - U)*p_test
 Lp = (Lp1 + Lp2) * dx
 
 #(15)
 aV = inner(grad(v),grad(v_test)) * dx
-LV1 = (n-p)*v_test*dx
+LV1 = 10**17*(n-p)*v_test*dx
 LV2 = NA*v_test*dx
 LV3 = (-0 + Nion)*v_test*dx
 LV4 = -ND*v_test*dx
-LV = -q/epsilon_0/epsilon_r* (LV1 + LV2 + LV3 + LV4)
+LVS = (LV2)
+LV = -(q/epsilon_0/epsilon_r )* LVS
 
 a_full = aV
 L_full = Ln + Lp + LV
@@ -104,17 +105,18 @@ bcp_left = DirichletBC(W.sub(1), p0,sub_domain=1)
                                          })'''
 #quit()
 
-solve(res == 0, theta, bcs=[bcv,bcn_right,bcp_left], solver_parameters={'mat_type':'aij',
+solve(res == 0, theta, bcs=[bcv,bcn_right,bcp_left], 
+                              solver_parameters={'mat_type':'aij',
                                           'ksp_type':'preonly',
                                          'pc_type':  'lu',
                                           #'snes_type':'test',
-                                         #'snes_monitor': True,
+                                         'snes_monitor': True,
                                        #'snes_view': True,
                                        #'ksp_monitor_true_residual': True,
                                        #'snes_converged_reason': True,
-                                       'ksp_converged_reason': True,
-                                       'ksp_view': True
+                                       'ksp_converged_reason': True
+                                       ,'ksp_view': True
                                          })
 
-#File("test.pvd").write(u)
+#File("test.pvd").write(theta)
 
