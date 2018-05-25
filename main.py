@@ -48,7 +48,7 @@ epsilon_r = 20#1#0**-24
 x_val = SpatialCoordinate(mesh)#/scale
 v0 = 1-x_val[0]/scale
 
-NA = NA_const#conditional(x_val[0] < x_pi, NA_const, 0)
+NA = conditional(x_val[0] < x_pi, NA_const, 0)
 ND = conditional(x_val[0] > x_in, ND_const, 0)
 Nion = conditional(And(x_val[0] > x_pi, x_val[0] < x_in), Nion_const, 0)
 
@@ -67,23 +67,27 @@ k1 = n0
 k2 = p0
 U = k1 * (n0*p0 - k2)
 
+temp_scaler = k_b/q*T
+print(temp_scaler)
+
 #(12)
-Ln1 = inner(mu_e*(n*grad(v) - k_b/q * T*grad(n)),grad(n_test))
+Ln1 = inner(mu_e*(n*grad(v) - temp_scaler*grad(n)),grad(n_test))
 Ln2 = 0#(G - U)*n_test
 Ln = (Ln1 + Ln2) * dx
 #(13)
-Lp1 = inner(mu_h*(-p*grad(v) - k_b/q * T*grad(p)),grad(p_test))
+Lp1 = inner(mu_h*(-p*grad(v) - temp_scaler*grad(p)),grad(p_test))
 Lp2 = 0#(G - U)*p_test
 Lp = (Lp1 + Lp2) * dx
 
+temp_scaler02 = 1.6*10**21
 #(15)
 aV = inner(grad(v),grad(v_test)) * dx
 LV1 = 10**17*(n-p)*v_test*dx
 LV2 = NA*v_test*dx
 LV3 = (-0 + Nion)*v_test*dx
 LV4 = -ND*v_test*dx
-LVS = (LV1 + LV2 + LV3 + LV4)
-LV = -(q/epsilon_0/epsilon_r )* LVS
+LVS = (LV1 + LV2 + LV4)
+LV = (q/epsilon_0/epsilon_r *temp_scaler02)* LVS
 
 a_full = aV
 L_full = Ln + Lp + LV
@@ -111,6 +115,7 @@ solve(res == 0, theta, bcs=[bcv,bcn_right,bcp_left],
                                          'pc_type':  'lu',
                                           #'snes_type':'test',
                                          'snes_monitor': True,
+                                         'snes_rtol': 10**-30,
                                        #'snes_view': True,
                                        #'ksp_monitor_true_residual': True,
                                        #'snes_converged_reason': True,
