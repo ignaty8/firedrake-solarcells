@@ -36,9 +36,15 @@ tau_p = 2*10**-15
 Nion_const = 10**19 #/cm**3 Moble Ionic Defect Density
 NA_const = 3.0*10**17 #/cm**3 p-type donor density
 ND_const = 3.0*10**17 #/cm**3 n-type donor density
+N_0 = 10**20 #/cm**3 Effective densitoy of states
 T = 300 #K
 epsilon_0 = 5.524*10**5 #q**2/eV/cm Vacuum Permittivity
-G_default = 2.5*10**21 #cm**3/s
+G_default = 2.5*10**21 #cm**3/s Generation rate
+k_btb = 10**-10 #cm**3/s Nominal Band-to-band recombination coeff
+E_g = 1.6 #eV Band gap
+
+n_i = N_0 * exp(-E_g/(2*k_b*T))
+
 
 epsilon_r = 20#1#0**-24
 
@@ -46,7 +52,7 @@ epsilon_r = 20#1#0**-24
 #p0 = ?
 #a0 = ?
 x_val = SpatialCoordinate(mesh)#/scale
-v0 = 1-x_val[0]/scale
+v0 = x_val[0]/scale
 
 NA = conditional(x_val[0] < x_pi, NA_const, 0)
 ND = conditional(x_val[0] > x_in, ND_const, 0)
@@ -62,21 +68,22 @@ p0 = NA_const/10**17#NA
 
 timestep = 1.0/n
 
-G = G_default
-k1 = n0
-k2 = p0
-U = k1 * (n0*p0 - k2)
+recomb_temp_scaler = 10**-17
+G = G_default *recomb_temp_scaler
+k1 = k_btb
+k2 = n_i**2
+U = k1 * (n0*p0 - k2) *recomb_temp_scaler
 
-temp_scaler = k_b/q*T
+temp_scaler = k_b/q*T *1.6*10**-16
 print(temp_scaler)
 
 #(12)
 Ln1 = inner(mu_e*(n*grad(v) - temp_scaler*grad(n)),grad(n_test))
-Ln2 = 0#(G - U)*n_test
+Ln2 = (G - U)*n_test
 Ln = (Ln1 + Ln2) * dx
 #(13)
 Lp1 = inner(mu_h*(-p*grad(v) - temp_scaler*grad(p)),grad(p_test))
-Lp2 = 0#(G - U)*p_test
+Lp2 = (G - U)*p_test
 Lp = (Lp1 + Lp2) * dx
 
 temp_scaler02 = 1.6*10**21
@@ -87,7 +94,7 @@ LV2 = NA*v_test*dx
 LV3 = (-0 + Nion)*v_test*dx
 LV4 = -ND*v_test*dx
 LVS = (LV1 + LV2 + LV4)
-LV = (q/epsilon_0/epsilon_r *temp_scaler02)* LVS
+LV = -(q/epsilon_0/epsilon_r) *temp_scaler02* LVS
 
 a_full = aV
 L_full = Ln + Lp + LV
