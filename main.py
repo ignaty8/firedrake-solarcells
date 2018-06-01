@@ -1,8 +1,32 @@
 from firedrake import *
 
-grid_size = 100
+#grid_size = 500
+mesh_res = [4,1,.1] ##in nm
+mesh_sections = [(0,0),(150,1),(198,2),(202,1),
+                 (250,0),(550,1),(598,2),(602,1),(650,0),(801,-1)]
+grid_size = 0
+grid_points = []
+for k in range(1,len(mesh_sections)):
+    grid_points.append(round((mesh_sections[k][0] - mesh_sections[k-1][0])
+        /mesh_res[mesh_sections[k-1][1]]))
+    grid_size += grid_points[k-1]
+#grid_points.append((800 - mesh_sections[k][0])
+#        /mesh_res[mesh_sections[k][1]])
+#grid_size += grid_points[k]
+        
 scale = 10**-6
-mesh = IntervalMesh(grid_size,scale)
+length = .8
+mesh = IntervalMesh(grid_size-1,scale*length)
+
+first_point = 0
+prev_coord = 0
+for k in range(1,len(mesh_sections)):
+    for j in range(first_point, first_point+grid_points[k-1]):
+        mesh.coordinates.dat.data[j] = prev_coord * 10**-9
+        prev_coord += mesh_res[mesh_sections[k-1][1]]
+    first_point += grid_points[k-1]
+
+print(mesh.coordinates.dat.data)
 
 V = FunctionSpace(mesh, "CG", 1)
 Vout = FunctionSpace(mesh, "CG", 1)
@@ -36,7 +60,7 @@ tau_p = 2*10**-15
 Nion_const = 10**19 #/cm**3 Moble Ionic Defect Density
 NA_const = 3.0*10**17 #/cm**3 p-type donor density
 ND_const = 3.0*10**17 #/cm**3 n-type donor density
-N_0 = 10**20 #/cm**3 Effective densitoy of states
+N_0 = 10**20 #/cm**3 Effective density of states
 T = 300 #K
 epsilon_0 = 5.524*10**5 #q**2/eV/cm Vacuum Permittivity
 G_default = 2.5*10**21 #cm**3/s Generation rate
@@ -54,12 +78,14 @@ epsilon_r = 20#1#0**-24
 x_val = SpatialCoordinate(mesh)#/scale
 v0 = x_val[0]/scale
 
+ds = 15
+
 NA = conditional(x_val[0] < x_pi, NA_const, 0)
 ND = conditional(x_val[0] > x_in, ND_const, 0)
 Nion = conditional(And(x_val[0] > x_pi, x_val[0] < x_in), Nion_const, 0)
 
-n0 = ND_const/10**17#ND
-p0 = NA_const/10**17#NA
+n0 = ND_const/10**ds#ND
+p0 = NA_const/10**ds#NA
 
 #it seems G=U=pow(n*p,.5)/(gamma*tau)
 #gamma is the recombination reaction order, tau is the SRH recomb. 
@@ -68,11 +94,11 @@ p0 = NA_const/10**17#NA
 
 timestep = 1.0/n
 
-recomb_temp_scaler = 10**-17
-G = G_default *recomb_temp_scaler
+recomb_temp_scaler = 1#0**-17
+G = 0#G_default *recomb_temp_scaler
 k1 = k_btb
 k2 = n_i**2
-U = k1 * (n0*p0 - k2) *recomb_temp_scaler
+U = k1 * (n*p*10**ds - k2/10**ds) *recomb_temp_scaler
 
 temp_scaler = k_b/q*T *1.6*10**-16
 print(temp_scaler)
@@ -89,10 +115,10 @@ Lp = (Lp1 + Lp2) * dx
 temp_scaler02 = 1.6*10**21
 #(15)
 aV = inner(grad(v),grad(v_test)) * dx
-LV1 = 10**17*(n-p)*v_test*dx
-LV2 = NA*v_test*dx
+LV1 = 10**ds*(n-p)*v_test*dx
+LV2 = -NA*v_test*dx
 LV3 = (-0 + Nion)*v_test*dx
-LV4 = -ND*v_test*dx
+LV4 = ND*v_test*dx
 LVS = (LV1 + LV2 + LV4)
 LV = -(q/epsilon_0/epsilon_r) *temp_scaler02* LVS
 
@@ -101,6 +127,7 @@ L_full = Ln + Lp + LV
 res = a_full - L_full
 #bcn = DirichletBC(W.sub(0), n0,sub_domain="on_boundary")
 #bcp = DirichletBC(W.sub(1), p0,sub_domain="on_boundary")
+#bcv = DirichletBC(W.sub(2), v0,sub_domain=2)
 bcv = DirichletBC(W.sub(2), v0,sub_domain="on_boundary")
 #bcn_left
 bcn_right = DirichletBC(W.sub(0), n0,sub_domain=2)
