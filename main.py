@@ -1,18 +1,17 @@
 from firedrake import *
 
-#grid_size = 500
-mesh_res = [4,1,.1] ##in nm
+
+mesh_res = [4,1,.1] ##grid cell size in nm
 mesh_sections = [(0,0),(150,1),(198,2),(202,1),
                  (250,0),(550,1),(598,2),(602,1),(650,0),(801,-1)]
+                #Write the first coordinate in nm of each interval and the grid 
+                #resolution. Use -1 for the final border to catch errors
 grid_size = 0
 grid_points = []
 for k in range(1,len(mesh_sections)):
     grid_points.append(round((mesh_sections[k][0] - mesh_sections[k-1][0])
         /mesh_res[mesh_sections[k-1][1]]))
     grid_size += grid_points[k-1]
-#grid_points.append((800 - mesh_sections[k][0])
-#        /mesh_res[mesh_sections[k][1]])
-#grid_size += grid_points[k]
         
 scale = 10**-6
 length = .8
@@ -22,7 +21,7 @@ first_point = 0
 prev_coord = 0
 for k in range(1,len(mesh_sections)):
     for j in range(first_point, first_point+grid_points[k-1]):
-        mesh.coordinates.dat.data[j] = prev_coord * 10**-9
+        mesh.coordinates.dat.data[j] = prev_coord * 10**-9 #adjusts from nm to m
         prev_coord += mesh_res[mesh_sections[k-1][1]]
     first_point += grid_points[k-1]
 
