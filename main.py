@@ -25,7 +25,7 @@ for k in range(1,len(mesh_sections)):
         prev_coord += mesh_res[mesh_sections[k-1][1]]
     first_point += grid_points[k-1]
 
-print(mesh.coordinates.dat.data)
+#print(mesh.coordinates.dat.data)
 
 V = FunctionSpace(mesh, "CG", 1)
 Vout = FunctionSpace(mesh, "CG", 1)
@@ -43,8 +43,8 @@ n, p, v = split(theta)
 n_test, p_test, v_test = TestFunctions(W)
 
 #Material boundaries (fractions of the system's lenth)
-x_pi = .2*scale
-x_in = .8*scale
+x_pi = .2*scale*length
+x_in = .8*scale*length
 
 
 #COnsts
@@ -65,6 +65,7 @@ epsilon_0 = 5.524*10**5 #q**2/eV/cm Vacuum Permittivity
 G_default = 2.5*10**21 #cm**3/s Generation rate
 k_btb = 10**-10 #cm**3/s Nominal Band-to-band recombination coeff
 E_g = 1.6 #eV Band gap
+V_bi = 1.3 #V device built-in voltage
 
 n_i = N_0 * exp(-E_g/(2*k_b*T))
 
@@ -74,8 +75,9 @@ epsilon_r = 20#1#0**-24
 #n0 = ?
 #p0 = ?
 #a0 = ?
+V_app = 3
 x_val = SpatialCoordinate(mesh)#/scale
-v0 = x_val[0]/scale
+v0 = V_bi - V_app#x_val[0]/scale
 
 ds = 15
 
@@ -126,8 +128,9 @@ L_full = Ln + Lp + LV
 res = a_full - L_full
 #bcn = DirichletBC(W.sub(0), n0,sub_domain="on_boundary")
 #bcp = DirichletBC(W.sub(1), p0,sub_domain="on_boundary")
-#bcv = DirichletBC(W.sub(2), v0,sub_domain=2)
-bcv = DirichletBC(W.sub(2), v0,sub_domain="on_boundary")
+bcv0 = DirichletBC(W.sub(2), 0, sub_domain=1)
+bcv = DirichletBC(W.sub(2), v0,sub_domain=2)
+#bcv = DirichletBC(W.sub(2), v0,sub_domain="on_boundary")
 #bcn_left
 bcn_right = DirichletBC(W.sub(0), n0,sub_domain=2)
 bcp_left = DirichletBC(W.sub(1), p0,sub_domain=1)
