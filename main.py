@@ -13,7 +13,7 @@ for k in range(1,len(mesh_sections)):
         /mesh_res[mesh_sections[k-1][1]]))
     grid_size += grid_points[k-1]
         
-scale = 10**-6
+scale = 10**-4#6
 length = .8
 mesh = IntervalMesh(grid_size-1,scale*length)
 
@@ -21,7 +21,7 @@ first_point = 0
 prev_coord = 0
 for k in range(1,len(mesh_sections)):
     for j in range(first_point, first_point+grid_points[k-1]):
-        mesh.coordinates.dat.data[j] = prev_coord * 10**-9 #adjusts from nm to m
+        mesh.coordinates.dat.data[j] = prev_coord * 10**-7#9 #adjusts from nm to m
         prev_coord += mesh_res[mesh_sections[k-1][1]]
     first_point += grid_points[k-1]
 
@@ -63,11 +63,10 @@ N_0 = 10**20 #/cm**3 Effective density of states
 T = 300 #K
 epsilon_0 = 5.524*10**5 #q**2/eV/cm Vacuum Permittivity
 G_default = 2.5*10**21 #cm**3/s Generation rate
-k_btb = 10**-10 #cm**3/s Nominal Band-to-band recombination coeff
+k_btb = 10**-10 #cm**3/s Nominal Band-to-band recombination coeff #TODO: Rescale
 E_g = 1.6 #eV Band gap
 V_bi = 1.3 #V device built-in voltage
 
-n_i = N_0 * exp(-E_g/(2*k_b*T))
 
 
 epsilon_r = 20#1#0**-24
@@ -79,7 +78,8 @@ V_app = 3
 x_val = SpatialCoordinate(mesh)#/scale
 v0 = V_bi - V_app#x_val[0]/scale
 
-ds = 15
+ds = 17
+n_i = N_0 * exp(-E_g/(2*k_b*T)) / 10**ds
 
 NA = conditional(x_val[0] < x_pi, NA_const, 0)
 ND = conditional(x_val[0] > x_in, ND_const, 0)
@@ -99,9 +99,9 @@ recomb_temp_scaler = 1#0**-17
 G = 0#G_default *recomb_temp_scaler
 k1 = k_btb
 k2 = n_i**2
-U = k1 * (n*p*10**ds - k2/10**ds) *recomb_temp_scaler
+U = k1 * 10**ds*(n*p - k2) *recomb_temp_scaler
 
-temp_scaler = k_b/q*T *1.6*10**-16
+temp_scaler = k_b/q*T #*1.6*10**-16
 print(temp_scaler)
 
 #(12)
@@ -113,7 +113,7 @@ Lp1 = inner(mu_h*(-p*grad(v) - temp_scaler*grad(p)),grad(p_test))
 Lp2 = (G - U)*p_test
 Lp = (Lp1 + Lp2) * dx
 
-temp_scaler02 = 1.6*10**21
+temp_scaler02 = 1#.6*10**21
 #(15)
 aV = inner(grad(v),grad(v_test)) * dx
 LV1 = 10**ds*(n-p)*v_test*dx
@@ -152,9 +152,10 @@ solve(res == 0, theta, bcs=[bcv,bcn_right,bcp_left],
                                           #'snes_type':'test',
                                          'snes_monitor': True,
                                          'snes_rtol': 10**-30,
+                                         "snes_stol": 0,
                                        #'snes_view': True,
                                        #'ksp_monitor_true_residual': True,
-                                       #'snes_converged_reason': True,
+                                       'snes_converged_reason': True,
                                        'ksp_converged_reason': True
                                        ,'ksp_view': True
                                          })
